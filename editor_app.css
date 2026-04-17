@@ -417,6 +417,64 @@ body { font-family: "Segoe UI", Tahoma, sans-serif; background: #1e1e1e; color: 
   color: #cfcfcf;
 }
 #file-input, #frog-input, #video-input, #motion-input { display: none; }
+
+/* ── Export Dialog ─────────────────────────────────────────────────── */
+#export-dialog-window {
+  position: fixed;
+  inset: 0;
+  z-index: 6000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0,0,0,0.6);
+}
+#export-dialog-window.hidden { display: none; }
+#export-dialog-panel {
+  width: 320px;
+  background: #1e1e1e;
+  border: 1px solid #444;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+}
+#export-dialog-header {
+  padding: 12px 16px;
+  border-bottom: 1px solid #333;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+#export-dialog-header h3 { margin: 0; font-size: 15px; color: #eee; }
+#export-dialog-body {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+#export-dialog-footer {
+  padding: 12px 16px;
+  border-top: 1px solid #333;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+.export-field {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.export-field label { color: #ccc; font-size: 12px; }
+.export-field select, .export-field input {
+  background: #2a2a2a;
+  border: 1px solid #444;
+  color: #eee;
+  padding: 4px 6px;
+  border-radius: 4px;
+  width: 140px;
+  font-size: 12px;
+}
+
 /* ── Drag and Drop de Capas ─────────────────────────────────────────── */
 .layer-item[draggable="true"],
 .layer-group-row[draggable="true"] {
