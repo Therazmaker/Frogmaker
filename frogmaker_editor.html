@@ -142,8 +142,7 @@
           <button class="timeline-btn" onclick="copySelectedTimelineFrames()">Copiar</button>
           <button class="timeline-btn" onclick="pasteTimelineFrames()">Pegar</button>
           <button class="timeline-btn danger" onclick="deleteSelectedTimelineKey()">Borrar key</button>
-          <button class="timeline-btn export-media" onclick="exportPngSequence()">PNG sequence</button>
-          <button class="timeline-btn export-media" onclick="exportTransparentGif()">GIF trans.</button>
+          <button class="timeline-btn export-media" onclick="showExportDialog()">Exportar Media...</button>
           <label class="check-row"><input type="checkbox" id="onion-toggle" onchange="toggleOnionSkin(this.checked)"> Onion</label>
           <label class="timeline-field">Antes <input type="number" id="onion-before-input" min="0" max="8" value="2" onchange="setOnionSkinNumber('before', +this.value)"></label>
           <label class="timeline-field">Despues <input type="number" id="onion-after-input" min="0" max="8" value="2" onchange="setOnionSkinNumber('after', +this.value)"></label>
@@ -183,6 +182,49 @@
         <div id="layer-tree">No hay capas</div>
       </div>
     </aside>
+  </div>
+
+  <div id="export-dialog-window" class="hidden">
+    <div id="export-dialog-panel">
+      <div id="export-dialog-header">
+        <h3>Exportar Animación</h3>
+        <button class="tool-btn" onclick="hideExportDialog()" style="min-width:30px">×</button>
+      </div>
+      <div id="export-dialog-body">
+        <div class="export-field">
+          <label>Formato</label>
+          <select id="export-format">
+            <option value="gif">GIF Animado (.gif)</option>
+            <option value="png">Secuencia PNG (.zip)</option>
+          </select>
+        </div>
+        <div class="export-field">
+          <label>Escala</label>
+          <select id="export-scale">
+            <option value="0.5">0.5x</option>
+            <option value="1" selected>1.0x (Normal)</option>
+            <option value="2">2.0x (Retina)</option>
+            <option value="4">4.0x (Ultra)</option>
+          </select>
+        </div>
+        <div class="export-field">
+          <label>FPS</label>
+          <input type="number" id="export-fps" min="1" max="60" value="24">
+        </div>
+        <div class="export-field">
+          <label>Fondo</label>
+          <select id="export-background">
+            <option value="transparent">Transparente</option>
+            <option value="white">Blanco</option>
+            <option value="black">Negro</option>
+          </select>
+        </div>
+      </div>
+      <div id="export-dialog-footer">
+        <button class="timeline-btn" onclick="hideExportDialog()">Cancelar</button>
+        <button class="timeline-btn primary-action" onclick="confirmExport()">Exportar ahora</button>
+      </div>
+    </div>
   </div>
 
   <div id="motion-window" class="hidden">

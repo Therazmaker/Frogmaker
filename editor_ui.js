@@ -322,4 +322,39 @@
     return text;
   };
   window.clearPerformanceStats = clearPerformanceStats;
+
+  window.showExportDialog = function() {
+    const dialog = document.getElementById('export-dialog-window');
+    if (!dialog) return;
+    const animation = typeof getCurrentAnimation === 'function' ? getCurrentAnimation() : null;
+    if (!animation) {
+      alert('Crea o selecciona una animación antes de exportar.');
+      return;
+    }
+    const fpsInput = document.getElementById('export-fps');
+    if (fpsInput) fpsInput.value = Math.max(1, Math.round(animation.frameRate || 24));
+    dialog.classList.remove('hidden');
+  };
+
+  window.hideExportDialog = function() {
+    const dialog = document.getElementById('export-dialog-window');
+    if (dialog) dialog.classList.add('hidden');
+  };
+
+  window.confirmExport = function() {
+    const format = document.getElementById('export-format').value;
+    const scale = parseFloat(document.getElementById('export-scale').value) || 1;
+    const fps = parseInt(document.getElementById('export-fps').value) || 24;
+    const bgValue = document.getElementById('export-background').value;
+
+    let background = { value: 'transparent', color: null };
+    if (bgValue === 'white') background = { value: 'white', color: '#ffffff' };
+    if (bgValue === 'black') background = { value: 'black', color: '#000000' };
+
+    hideExportDialog();
+
+    if (typeof exportAnimationMedia === 'function') {
+      exportAnimationMedia(format, { scale, fps, background });
+    }
+  };
 })();

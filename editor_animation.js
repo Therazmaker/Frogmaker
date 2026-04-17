@@ -358,7 +358,7 @@ function applySwitchTimelinesAtFrame(animation, frame) {
   Object.keys(groups).forEach(groupName => {
     const activeKey = getSwitchTrackValue(animation, groupName, frame);
     groups[groupName].forEach(entry => {
-      const baseVisible = entry.layer.runtime_visible !== undefined ? entry.layer.runtime_visible : entry.layer.visible !== false;
+      const baseVisible = entry.layer.visible !== false;
       entry.layer.runtime_visible = !!baseVisible && entry.key === activeKey;
     });
   });
@@ -1298,10 +1298,14 @@ function drawCurrentSceneToContext(drawCtx, width, height, scale = 1, background
   } else {
     drawCtx.scale(scale, scale);
   }
+
+  const currentAnimation = getCurrentAnimation();
+  const currentFrame = projectState.playback.currentFrame;
+
   getRenderableLayers().forEach(({ layer }) => {
     if (!layer.img_element) return;
     if (typeof getLayerRenderVisible === 'function') {
-      if (!getLayerRenderVisible(layer)) return;
+      if (!getLayerRenderVisible(layer, currentAnimation, currentFrame)) return;
     } else {
       const visible = layer.runtime_visible !== undefined ? layer.runtime_visible : layer.visible !== false;
       if (!visible) return;
@@ -1351,7 +1355,7 @@ function renderCurrentAnimationFrameDataUrl(scale = 1, background = null) {
   return exportCanvas.toDataURL('image/png');
 }
 
-async function captureAnimationFramesForExport() {
+async function captureAnimationFramesForExport(options = {}) {
   const animation = getCurrentAnimation();
   if (!animation) {
     alert('Crea o selecciona una animacion antes de exportar.');
@@ -1366,7 +1370,8 @@ async function captureAnimationFramesForExport() {
   const previousFrame = projectState.playback.currentFrame;
   const wasPlaying = projectState.playback.isPlaying;
   const frames = [];
-  const background = getMediaExportBackground();
+  const background = options.background || getMediaExportBackground();
+  const exportScale = options.scale || 1;
   const stateBackup = typeof ensureSecondaryMotionState === 'function' && ensureSecondaryMotionState().enabled && ensureSecondaryMotionState().autoBakeOnExport
     ? JSON.parse(JSON.stringify(animation))
     : null;
@@ -1383,7 +1388,12 @@ async function captureAnimationFramesForExport() {
     projectState.editorMode = 'animation';
     projectState.playback.currentFrame = frame;
     applyAnimationAtCurrentFrame({ skipUi: true, suppressSecondaryMotion: true });
-    frames.push({ frame, data_url: renderCurrentAnimationFrameDataUrl(1, background) });
+
+    // Garantizar que los controladores de malla y otros estados globales se apliquen
+    if (typeof applyMeshControllers === 'function') applyMeshControllers();
+    if (typeof applyIkConstraints === 'function') applyIkConstraints();
+
+    frames.push({ frame, data_url: renderCurrentAnimationFrameDataUrl(exportScale, background) });
     if (frame % 6 === 0) await new Promise(resolve => setTimeout(resolve, 0));
   }
 
@@ -1402,8 +1412,8 @@ async function captureAnimationFramesForExport() {
   return { animation, frames, background };
 }
 
-async function exportAnimationMedia(format) {
-  const captured = await captureAnimationFramesForExport();
+async function exportAnimationMedia(format, options = {}) {
+  const captured = await captureAnimationFramesForExport(options);
   if (!captured) return;
 
   const { animation, frames, background } = captured;
@@ -1411,7 +1421,7 @@ async function exportAnimationMedia(format) {
   const filename = `${getSafeExportName(animation.name)}.${format === 'gif' ? 'gif' : 'zip'}`;
   const payload = {
     name: getSafeExportName(animation.name),
-    fps: Math.max(1, Math.round(animation.frameRate || 24)),
+    fps: options.fps || Math.max(1, Math.round(animation.frameRate || 24)),
     background: background.value,
     frames
   };
@@ -1433,13 +1443,6 @@ async function exportAnimationMedia(format) {
   }
 }
 
-function exportPngSequence() {
-  exportAnimationMedia('png');
-}
-
-function exportTransparentGif() {
-  exportAnimationMedia('gif');
-}
 
 function bakeSecondaryMotionToAnimation(animationId, options = {}) {
   const { temporary = false } = options;
