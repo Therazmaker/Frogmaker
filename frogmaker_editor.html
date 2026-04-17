@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Frogmaker v2</title>
+  <link rel="stylesheet" href="/static/editor_app.css?v=20260409b">
+</head>
+<body>
+  <div id="app" class="rig-mode">
+    <aside id="sidebar">
+      <div id="sidebar-top">
+        <div class="section">
+          <div class="section-title">Modo del editor</div>
+          <div class="mode-switch">
+            <button class="mode-btn active" id="mode-rig-btn" onclick="switchEditorMode('rig')">Rig</button>
+            <button class="mode-btn" id="mode-animation-btn" onclick="switchEditorMode('animation')">Animacion</button>
+          </div>
+        </div>
+
+        <div class="sidebar-menu-row">
+          <details class="sidebar-menu">
+            <summary>Archivo</summary>
+            <div class="sidebar-menu-popover">
+              <button class="clip-btn" onclick="document.getElementById('file-input').click()">Importar PSD / PNG</button>
+              <input type="file" id="file-input" accept=".psd,.png,.jpg,.jpeg" onchange="loadFile(event)">
+              <button class="clip-btn" onclick="document.getElementById('video-input').click()">Importar video ref.</button>
+              <input type="file" id="video-input" accept="video/*,.mp4,.webm,.mov" onchange="loadVideoReference(event)">
+              <button class="clip-btn" onclick="saveProjectFile()">Guardar .frog</button>
+              <button class="clip-btn" onclick="document.getElementById('frog-input').click()">Abrir .frog</button>
+              <input type="file" id="frog-input" accept=".frog,.json" onchange="loadProjectFile(event)">
+              <button class="clip-btn" onclick="saveMotionFile()">Guardar .frogmotion</button>
+              <button class="clip-btn" onclick="document.getElementById('motion-input').click()">Cargar .frogmotion</button>
+              <input type="file" id="motion-input" accept=".frogmotion,.json" onchange="loadMotionFile(event)">
+              <button class="clip-btn primary-action" onclick="exportProject()">Exportar Proyecto (ZIP)</button>
+            </div>
+          </details>
+          <details class="sidebar-menu">
+            <summary>Editar</summary>
+            <div class="sidebar-menu-popover">
+              <button class="clip-btn rig-only" onclick="saveBindPose()">Guardar Bind Pose</button>
+              <button class="clip-btn rig-only" onclick="restorePose()">Restaurar Bind Pose</button>
+              <button class="clip-btn danger rig-only" onclick="deleteSelectedBone()" id="del-btn">Eliminar bone</button>
+            </div>
+          </details>
+        </div>
+
+        <div class="section">
+          <div class="section-title">Herramientas</div>
+          <div class="tool-grid">
+            <button class="tool-btn active" id="tool-bone" onclick="setTool('bone')">Bone</button>
+            <button class="tool-btn" id="tool-select" onclick="setTool('select')">Seleccionar</button>
+            <button class="tool-btn" id="tool-move" onclick="setTool('move')">Mover</button>
+            <button class="tool-btn" id="tool-pose" onclick="setTool('pose')">Pose</button>
+            <button class="tool-btn" id="tool-pins" onclick="setTool('pins')">Pins</button>
+            <button class="tool-btn" id="tool-weightBrush" onclick="useSelectedBoneForWeightBrush()">Weight Brush</button>
+            <button class="tool-btn" id="tool-stitchBrush" onclick="useSelectedLayerForStitchBrush()">Stitch Brush</button>
+          </div>
+          <div class="weight-brush-options">
+            <div class="prop-row"><span class="prop-label">Radio</span><input type="range" min="5" max="250" value="60" oninput="setWeightBrushRadius(this.value)"></div>
+            <div class="prop-row"><span class="prop-label">Fuerza</span><input type="range" min="0" max="1" step="0.01" value="0.08" oninput="setWeightBrushStrength(this.value)"></div>
+            <div class="prop-row"><span class="prop-label">Modo</span><select onchange="setWeightBrushMode(this.value)"><option value="add">add</option><option value="subtract">subtract</option><option value="smooth">smooth</option></select></div>
+            <div class="prop-row"><span class="prop-label">Falloff</span><select onchange="setWeightBrushFalloff(this.value)"><option value="linear">linear</option><option value="smooth">smooth</option><option value="constant">constant</option></select></div>
+          </div>
+          <div class="stitch-brush-options">
+            <div class="prop-row"><span class="prop-label">Target</span><select id="stitch-target-layer" onchange="setStitchTargetLayer(this.value)"><option value="">Target...</option></select></div>
+            <div class="prop-row"><span class="prop-label">Radio</span><input type="range" min="5" max="250" value="50" oninput="setStitchBrushRadius(this.value)"></div>
+            <div class="prop-row"><span class="prop-label">Fuerza</span><input type="range" min="0" max="1" step="0.01" value="1" oninput="setStitchBrushStrength(this.value)"></div>
+            <div class="prop-row"><span class="prop-label">Modo</span><select onchange="setStitchBrushMode(this.value)"><option value="weld">weld</option><option value="attach">attach</option><option value="detach">detach</option></select></div>
+            <div class="prop-row"><span class="prop-label">Falloff</span><select onchange="setStitchBrushFalloff(this.value)"><option value="linear">linear</option><option value="smooth">smooth</option><option value="constant">constant</option></select></div>
+            <div class="prop-row"><span class="prop-label">Suavizar</span><input type="range" min="0" max="180" value="35" oninput="setStitchSmoothRadius(this.value)"></div>
+          </div>
+        </div>
+      </div>
+
+      <div id="animation-list-panel">
+        <div class="section-title">Animaciones</div>
+        <div id="clip-list"></div>
+        <div class="inline-actions">
+          <button class="clip-btn" onclick="createAnimationClip()">Nueva</button>
+          <button class="clip-btn" onclick="duplicateCurrentAnimation()">Duplicar</button>
+          <button class="clip-btn danger" onclick="deleteCurrentAnimation()">Eliminar</button>
+        </div>
+        <details class="ai-animation-panel">
+          <summary>Mejorar con IA</summary>
+          <textarea id="ai-animation-instructions" rows="5" placeholder="Instrucciones para la IA..."></textarea>
+          <div class="inline-actions">
+            <button class="clip-btn" onclick="exportAnimationForAI(getCurrentAnimation(), { mode: 'clipboard' })">Copiar para IA</button>
+            <button class="clip-btn" onclick="exportAnimationForAI(getCurrentAnimation(), { mode: 'download' })">Descargar .json</button>
+          </div>
+          <button class="clip-btn" onclick="document.getElementById('ai-animation-input').click()">Importar desde IA</button>
+          <input type="file" id="ai-animation-input" accept=".json,application/json" onchange="loadAIAnimationFile(event)" style="display:none">
+          <pre id="ai-animation-errors" style="display:none"></pre>
+        </details>
+      </div>
+
+      <div id="bone-list">
+        <div class="section-title">Jerarquia</div>
+        <div id="bone-tree"></div>
+      </div>
+
+      <div id="props-panel">
+        <div class="section-title">Inspector</div>
+        <div id="props-content">Selecciona un bone o una capa</div>
+      </div>
+    </aside>
+
+    <main id="workspace">
+      <section id="canvas-area">
+        <div id="toolbar">
+          <button class="tbar-btn active" id="v-bones" onclick="toggleLayer('bones')">Bones</button>
+          <button class="tbar-btn active" id="v-names" onclick="toggleLayer('names')">Nombres</button>
+          <button class="tbar-btn active" id="v-images" onclick="toggleLayer('images')">Imagenes</button>
+          <button class="tbar-btn" id="v-grid" onclick="toggleLayer('grid')">Grid</button>
+          <button class="tbar-btn" onclick="toggleHeatmap('dominant')">Heatmap</button>
+          <button class="tbar-btn" onclick="toggleHeatmap('selected', selectedId)">Heat bone</button>
+          <button class="tbar-btn" id="tool-camera" onclick="selectCameraTool()">Camara</button>
+          <button class="tbar-btn" onclick="captureCameraToAnimation()">Key camera</button>
+          <label class="check-row"><input type="checkbox" checked onchange="toggleCameraFrame(this.checked)"> Ver marco</label>
+          <button class="tbar-btn" onclick="resetCameraToScene()">Reset cam</button>
+          <button class="tbar-btn" onclick="resetView()">Centrar vista</button>
+          <button class="tbar-btn" onclick="togglePerformanceProfiler()">Profiler</button>
+          <button class="tbar-btn" onclick="zoomIn()">+</button>
+          <button class="tbar-btn" onclick="zoomOut()">-</button>
+        </div>
+        <canvas id="main-canvas"></canvas>
+        <div id="status-bar">
+          <span id="st-tool">Modo: bone</span>
+          <span id="st-coords">x: 0 y: 0</span>
+          <span id="st-bones">1 bones</span>
+          <span id="st-hint">Drag para crear bone</span>
+        </div>
+      </section>
+
+      <section id="animation-shell">
+        <div id="timeline-toolbar">
+          <button class="timeline-btn" id="play-btn" onclick="togglePlayback()">Play</button>
+          <button class="timeline-btn" onclick="stopPlayback()">Stop</button>
+          <button class="timeline-btn" onclick="stepFrame(-1)"><</button>
+          <button class="timeline-btn" onclick="stepFrame(1)">></button>
+          <button class="timeline-btn" onclick="insertKeyframeForSelection()">Insertar key</button>
+          <button class="timeline-btn" onclick="copySelectedTimelineFrames()">Copiar</button>
+          <button class="timeline-btn" onclick="pasteTimelineFrames()">Pegar</button>
+          <button class="timeline-btn danger" onclick="deleteSelectedTimelineKey()">Borrar key</button>
+          <button class="timeline-btn export-media" onclick="exportPngSequence()">PNG sequence</button>
+          <button class="timeline-btn export-media" onclick="exportTransparentGif()">GIF trans.</button>
+          <label class="check-row"><input type="checkbox" id="onion-toggle" onchange="toggleOnionSkin(this.checked)"> Onion</label>
+          <label class="timeline-field">Antes <input type="number" id="onion-before-input" min="0" max="8" value="2" onchange="setOnionSkinNumber('before', +this.value)"></label>
+          <label class="timeline-field">Despues <input type="number" id="onion-after-input" min="0" max="8" value="2" onchange="setOnionSkinNumber('after', +this.value)"></label>
+          <label class="timeline-field">Opac. <input type="number" id="onion-opacity-input" min="2" max="85" value="28" onchange="setOnionSkinOpacity(+this.value)"></label>
+          <label class="timeline-field">IA <input type="text" id="ai-animation-instructions-toolbar" placeholder="mejorar idle"></label>
+          <button class="timeline-btn" onclick="exportAnimationForAI(getCurrentAnimation(), { mode: 'clipboard' })">Copiar IA</button>
+          <button class="timeline-btn" onclick="exportAnimationForAI(getCurrentAnimation(), { mode: 'download' })">JSON IA</button>
+          <button class="timeline-btn" onclick="document.getElementById('ai-animation-input').click()">Importar IA</button>
+          <label class="timeline-field">Fondo
+            <select id="media-background-select">
+              <option value="transparent">Transparente</option>
+              <option value="white">Blanco</option>
+              <option value="black">Negro</option>
+            </select>
+          </label>
+          <label class="check-row"><input type="checkbox" id="auto-key-toggle" checked onchange="toggleAutoKey(this.checked)"> Auto key</label>
+          <label class="check-row"><input type="checkbox" id="video-ref-toggle" onchange="toggleVideoReference(this.checked)"> Video ref</label>
+          <button class="timeline-btn" onclick="showMotionWindow()">Ventana video</button>
+          <label class="timeline-field">Opac. <input type="number" id="video-opacity-input" min="0" max="100" value="45" onchange="setVideoReferenceOpacity(+this.value / 100)"></label>
+          <label class="timeline-field">FPS <input type="number" id="timeline-fps-input" min="1" max="120" value="24" onchange="setAnimationFrameRate(+this.value)"></label>
+          <label class="timeline-field">Frames <input type="number" id="timeline-duration-input" min="1" value="48" onchange="setAnimationDuration(+this.value)"></label>
+          <button class="timeline-btn" onclick="scaleAnimationDurationFromToolbar()">Escalar</button>
+          <span id="timeline-meta">Sin clip</span>
+          <input type="range" id="frame-slider" min="0" max="48" value="0" oninput="setCurrentFrame(+this.value)">
+        </div>
+        <div id="lipsync-panel"></div>
+        <div id="timeline-body">
+          <div id="timeline-empty">Crea una animacion para empezar.</div>
+          <div id="timeline-grid"></div>
+        </div>
+      </section>
+    </main>
+
+    <aside id="layers-sidebar">
+      <div id="layer-list">
+        <div class="section-title">Capas</div>
+        <div id="layer-tree">No hay capas</div>
+      </div>
+    </aside>
+  </div>
+
+  <div id="motion-window" class="hidden">
+    <div id="motion-panel">
+      <div id="motion-header">
+        <div>
+          <strong>Motion Reference</strong>
+          <span id="motion-video-name">Sin video</span>
+        </div>
+        <div class="inline-actions">
+          <button class="timeline-btn" onclick="playMotionVideo()">Play video</button>
+          <button class="timeline-btn" onclick="pauseMotionVideo()">Pause video</button>
+          <button class="timeline-btn" onclick="toggleMotionBonesOverlay()">Bones overlay</button>
+          <button class="timeline-btn" onclick="setTool('bone')">Bone</button>
+          <button class="timeline-btn" onclick="setTool('pose')">Pose</button>
+          <button class="timeline-btn" onclick="setTool('move')">Mover</button>
+          <button class="timeline-btn" onclick="captureSelectedBoneToAnimation()">Key bone</button>
+          <button class="timeline-btn" onclick="hideMotionWindow()">Cerrar</button>
+        </div>
+      </div>
+      <div id="motion-stage">
+        <img id="motion-frame-image" alt="Frame de referencia">
+        <video id="motion-video" muted playsinline preload="auto" controls></video>
+        <canvas id="motion-canvas" class="overlay-off"></canvas>
+      </div>
+      <div id="motion-status">
+        <span>Click y drag para crear/posar bones sobre el video.</span>
+        <span id="motion-frame-label">Frame 0</span>
+      </div>
+    </div>
+  </div>
+
+  <div id="loading-overlay" class="boot-visible">Iniciando editor...</div>
+
+  <script src="/static/pixi.min.js?v=20260412a"></script>
+  <script src="/static/editor_state.js?v=20260412a"></script>
+  <script src="/static/editor_ui.js?v=20260412a"></script>
+  <script src="/static/editor_pixi_renderer.js?v=20260412a"></script>
+  <script src="/static/editor_project_io.js?v=20260412a"></script>
+  <script src="/static/editor_history.js?v=20260412a"></script>
+  <script src="/static/editor_core.js?v=20260412a"></script>
+  <script src="/static/editor_particles.js?v=20260413"></script>
+  <script src="/static/editor_animation.js?v=20260412a"></script>
+</body>
+</html>

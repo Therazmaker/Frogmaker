@@ -1,0 +1,7 @@
+fastapi
+uvicorn
+psd-tools
+Pillow
+python-multipart
+imageio
+imageio-ffmpeg

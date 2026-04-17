@@ -1,0 +1,195 @@
+SISTEMA DE MESH DEFORMABLE Y CAPAS CONTROLADORAS
+================================================
+
+Resumen
+-------
+El sistema permite que una capa se convierta en una capa deformable.
+Esa capa usa una malla interna (mesh) para que la imagen pueda estirarse
+sin romperse visualmente cuando otra capa la controla.
+
+La idea base es:
+
+1. Una capa deformable tiene vertices.
+2. Esos vertices se pueden seleccionar.
+3. Con esa seleccion se crea un pin.
+4. Ese pin se vincula a una capa controladora.
+5. Cuando la capa controladora se mueve o rota, el pin arrastra los
+   vertices cercanos usando radio, falloff y fuerza.
+
+
+Conceptos principales
+---------------------
+
+1. Capa controladora
+   Es una capa normal que actua como driver.
+   Su posicion y rotacion sirven para empujar otra capa.
+
+2. Capa deformable
+   Es una capa que tiene un mesh activo.
+   En lugar de dibujarse como una imagen plana, se dibuja por triangulos.
+
+3. Mesh
+   Es una rejilla de vertices y triangulos.
+   Se genera sobre la capa deformable y sirve como base para deformar la textura.
+
+4. Bind mesh
+   Es la forma base del mesh.
+   Nunca se debe destruir durante la deformacion.
+   Siempre es el punto de partida del calculo.
+
+5. Runtime mesh
+   Es la version deformada del mesh en tiempo real.
+   Se recalcula continuamente segun los controladores.
+
+6. Pin
+   Es un grupo de vertices seleccionados.
+   El pin tiene:
+   - vertices asignados
+   - una capa controladora
+   - radio
+   - falloff
+   - fuerza
+
+
+Como funciona internamente
+--------------------------
+
+1. Crear mesh
+   Cuando conviertes una capa en deformable y creas el mesh,
+   el sistema construye una malla base con vertices, UVs e indices.
+
+2. Seleccionar vertices
+   En modo Pins puedes hacer click sobre vertices para seleccionarlos.
+   Shift + click permite sumar o quitar vertices de la seleccion.
+
+3. Crear pin
+   Cuando ya tienes vertices seleccionados, puedes crear un pin.
+   Ese pin guarda:
+   - que vertices controla
+   - el centro promedio de esos vertices
+   - el radio de influencia
+   - el falloff
+   - la fuerza
+
+4. Vincular a una capa controladora
+   En el inspector puedes asignar una capa controladora al pin.
+   En ese momento se guarda la transformacion de referencia del controlador
+   para usarla como bind del controlador.
+
+5. Evaluar deformacion
+   Cada vez que se renderiza:
+   - se parte de bindVertices
+   - se busca la transform actual de la capa controladora
+   - se calcula el delta de posicion y rotacion contra el bind
+   - se aplica ese delta sobre vertices dentro del radio del pin
+   - el peso de cada vertice depende de la distancia al centro del pin
+
+6. Mezcla de influencia
+   Si varios pins afectan la misma capa, las deformaciones se combinan.
+   El sistema normaliza pesos para evitar resultados violentos o inestables.
+
+
+Parametros del pin
+------------------
+
+1. Radio
+   Define hasta donde llega la influencia del pin.
+   Un radio mas grande arrastra mas vertices.
+
+2. Falloff
+   Controla como se debilita la influencia con la distancia.
+   Un falloff bajo hace una transicion mas suave.
+   Un falloff alto concentra mas la deformacion cerca del centro.
+
+3. Fuerza
+   Multiplica la intensidad del movimiento o rotacion transferida.
+   Puede usarse para hacer el efecto mas suave o mas agresivo.
+
+
+Integracion con animacion
+-------------------------
+El sistema ya esta pensado para trabajar con el timeline.
+
+Eso significa:
+
+1. Si una capa controladora tiene keyframes de posicion o rotacion,
+   el mesh deformable responde durante playback.
+
+2. No hace falta animar vertices manualmente en esta version.
+   El movimiento del controlador genera la deformacion.
+
+3. La deformacion se recalcula frame a frame desde la bind pose.
+   No se acumula deformacion encima de deformacion.
+
+
+Flujo recomendado de uso
+------------------------
+
+1. Importa tus capas.
+2. Elige la capa que quieres deformar.
+3. En el inspector cambia el rol a deformable.
+4. Crea el mesh.
+5. Entra al modo Pins.
+6. Selecciona vertices del area que quieres controlar.
+7. Crea un pin.
+8. Asigna una capa controladora al pin.
+9. Ajusta radio, falloff y fuerza.
+10. Mueve o rota la capa controladora.
+11. Observa como la capa deformable se estira.
+
+
+Casos de uso tipicos
+--------------------
+
+1. Pelo o tela
+   Una capa controladora puede arrastrar un extremo y deformar el resto.
+
+2. Carne o partes blandas
+   Una capa controladora puede empujar una zona de una imagen y generar
+   deformacion organica.
+
+3. Accesorios flexibles
+   Cintas, mangas, colas o elementos colgantes.
+
+
+Limitaciones actuales
+---------------------
+
+1. El sistema esta orientado a deformacion controlada por capas.
+   No es todavia un sistema completo de skinning por hueso por vertice.
+
+2. No hay keyframes directos por vertice como feature principal.
+
+3. La exportacion actual prioriza el rig y slots del editor.
+   La deformacion avanzada puede comportarse como feature interna del editor
+   si el formato destino no la soporta exactamente.
+
+4. La calidad final depende mucho de:
+   - cantidad de vertices
+   - ubicacion del pin
+   - radio
+   - falloff
+   - fuerza
+
+
+Buenas practicas
+----------------
+
+1. Usa la menor cantidad de pins posible al inicio.
+2. Empieza con radios medios.
+3. No pongas demasiada fuerza si la zona es pequeña.
+4. Si una deformacion se ve dura, sube el radio o baja el falloff.
+5. Si una deformacion afecta demasiado, baja el radio o la fuerza.
+6. Guarda la bind pose cuando la forma base este correcta.
+
+
+Resumen corto
+-------------
+La capa controladora no deforma pixeles directamente.
+Lo que hace es mover pins.
+Los pins afectan vertices del mesh.
+El mesh deforma la textura.
+
+Cadena completa:
+
+Capa controladora -> Pin -> Vertices del mesh -> Textura deformada
